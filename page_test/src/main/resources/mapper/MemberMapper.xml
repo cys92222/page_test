@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.dao.MemberDao">
+  
+  <select id="allMember" resultType="com.example.demo.vo.MemberVo" parameterType="com.example.demo.util.Criteria">
+   select member_no, user_id, pwd, user_name, email, pic_no, pic_name
+   from (
+   		select m.member_no, m.user_id, m.pwd, m.user_name, m.email, mp.pic_no, mp.pic_name, row_number() over(order by member_no) as rnum
+   		from member m, member_pic mp
+   		where 1 = 1
+				<if test="searchType != null">
+					<if test="searchType == 't'.toString()">AND member_no LIKE '%' || #{keyword} || '%'</if>
+					<if test="searchType == 'c'.toString()">AND m.user_id LIKE '%' || #{keyword} || '%'</if>
+					<if test="searchType == 'w'.toString()">AND m.user_name LIKE '%' || #{keyword} || '%'</if>
+					<if test="searchType == 'tc'.toString()">AND (m.user_id LIKE '%' || #{keyword} || '%') or (m.user_name LIKE '%' || #{keyword} || '%')</if>
+				</if>
+   			and m.user_id = mp.user_id		
+   		)
+	where rnum between #{rowStart} and #{rowEnd} 
+	order by member_no desc
+  </select>
+  
+  <select id="countMember" resultType="java.lang.Integer">
+  	select count(*) 
+  	from member 
+  	where 1 = 1
+  	<include refid="search"></include>
+  	and <![CDATA[member_no > 0]]>
+  </select>
+  
+  <sql id="search">
+	<if test="searchType != null">
+		<if test="searchType == 't'.toString()">AND member_no LIKE '%' || #{keyword} || '%'</if>
+		<if test="searchType == 'c'.toString()">AND user_id LIKE '%' || #{keyword} || '%'</if>
+		<if test="searchType == 'w'.toString()">AND user_name LIKE '%' || #{keyword} || '%'</if>
+		<if test="searchType == 'tc'.toString()">AND (user_id LIKE '%' || #{keyword} || '%') or (user_name LIKE '%' || #{keyword} || '%')</if>
+	</if>
+</sql>
+  
+  <select id="searchMember" resultType="com.example.demo.vo.MemberVo">
+  	select *
+  	from member m, member_pic mp
+   	where m.user_id = mp.user_id and
+   	m.member_no = #{member_no}
+  </select>
+  
+  <insert id="insertMember">
+  	insert into member values (seq_member_no.nextval,#{user_id}, #{pwd},#{user_name}, #{email})
+  </insert>
+  
+  <insert id="insertMember_Pic">
+  	insert into member_pic values (seq_member_pic_no.nextval,#{pic_name},#{user_id})
+  </insert>
+  
+  <select id="login" resultType="com.example.demo.vo.MemberVo">
+  	select *
+  	from member
+  	where user_id = #{user_id} and
+  		pwd = #{pwd}
+  </select>
+</mapper>
